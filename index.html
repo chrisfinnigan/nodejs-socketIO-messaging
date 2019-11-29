@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.css">
+  <style>
+    #app {
+      margin-top: 2rem;
+    }
+
+    p.white {
+      color: #fff
+    }
+
+    button img {
+      width: 25px;
+      height: 25px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+    }
+
+    .lightGrey {
+      background-color: #cdcdcd
+    }
+
+    .groupMsg {
+      background-color: #c1d2e3
+    }
+
+    .directMsg {
+      background-color: #c1e3c9
+    }
+
+    .note {
+      background-color: #d2c1e3
+    }
+
+    .appointment {
+      background-color: #e3d4c1
+    }
+
+    .svgIcon {
+      height: 20px;
+      width: 20px;
+    }
+
+    select,
+    input,
+    textarea {
+      margin: 1rem 0 1rem 0
+    }
+
+    .contactBtn {
+      width: 100%;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+
+<body style="background: #444">
+
+  <div id="app">
+    <div class="login" v-if="usernameSubmitted === false">
+      <div class="card shadow lightGrey" style="width: 50%; margin: 2rem auto">
+        <div class="card-body">
+          <h5 class="card-title text-center">Please choose a username</h5>
+          <h6 class="card-subtitle mb-2 text-muted"></h6>
+          <p class="card-text text-center"><br>
+            <input type="text" v-model="username" placeholder="Enter a username" class="mt-2 form-control">
+            <button id="submitUsername" class="btn btn-success" @click='submitUsername()'>Log-in</button>
+            <p>
+        </div>
+      </div>
+    </div>
+
+    <div id="activityFeed" v-if="usernameSubmitted === true">
+      <!-- <div class="text-center mt-5 mb-5">
+        <button @click='toggleBoolProp("showNewGroupMessage")' class="btn btn-success"><img src="img/groupmsg.svg"/></button>
+        <button @click='toggleBoolProp("showNewDirectMessage")' class="btn btn-success"><img src="img/directmsg.svg"/></button>
+        <button @click='toggleBoolProp("showNewNote")' class="btn btn-success"><img src="img/notepad.svg"/></button>
+        <button @click='sendAppointment()' class="btn btn-success"><img src="img/invite.svg"/></button>
+        <button @click='clearActivityFeed()' class="btn btn-danger">Clear Activity Feed</button>
+      </div> -->
+      <div class="container-fluid">
+        <div class="row">
+
+          <div class="col-md-10">
+            <div class="row">
+              <h2 style="color: white;" class="col-md-6">
+                {{username}}'s Activity Feed
+              </h2>
+              <div class="col-md-6 text-right">
+                <button @click='toggleBoolProp("showNewGroupMessage")' class="btn btn-success"><img
+                    src="img/dark-icons/groupMsg.svg" /></button>
+                <button @click='toggleBoolProp("showNewDirectMessage")' class="btn btn-success"><img
+                    src="img/dark-icons/directMsg.svg" /></button>
+                <button @click='toggleBoolProp("showNewNote")' class="btn btn-success"><img
+                    src="img/dark-icons/note.svg" /></button>
+                <button @click='sendAppointment()' class="btn btn-success"><img
+                    src="img/dark-icons/appointment.svg" /></button>
+                <button @click='clearActivityFeed()' class="btn btn-info"><img
+                    src="img/dark-icons/delete.svg" /></button>
+              </div>
+            </div>
+
+
+            <!--New Group Message Panel -->
+            <div class="card shadow lightGrey" style="margin: 2rem 0" v-if="showNewGroupMessage === true">
+              <div class="card-body">
+                <h5 class="card-title">New group message</h5>
+                <p class="card-text text-center">
+                  <textarea v-model="newGroupMessage" placeholder="enter a message" class="form-control"></textarea>
+                  <button class="btn btn-success" id="submitNewGroupMessage" @click='sendGroupMessage()'>Send Group
+                    Message</button>
+                  <p>
+              </div>
+            </div>
+
+            <!--New Direct Message Panel -->
+            <div class="card shadow lightGrey" style="margin: 2rem 0" v-if="showNewDirectMessage === true">
+              <div class="card-body">
+                <h5 class="card-title"><img src="img/dark-icons/directMsg.svg" class="svgIcon" /> New direct message
+                </h5>
+                <p class="card-text text-center">
+                  <select v-model="sendTo" class="form-control">
+                    <option :value="null">Select User To Message</option>
+                    <option v-for="user in connectedUsers" :value="user.socketId">
+                      {{user.username}}
+                    </option>
+                  </select>
+                  <textarea v-model="newDirectMessage" placeholder="enter a message" class="form-control"></textarea>
+                  <button class="btn btn-success" id="submitNewDirectMessage" @click='sendDirectMessage()'>Send Direct
+                    Message</button>
+                  <p>
+              </div>
+            </div>
+
+            <!--New Note -->
+            <div class="card shadow lightGrey" style="margin: 2rem 0" v-if="showNewNote === true">
+              <div class="card-body">
+                <h5 class="card-title"><img src="img/dark-icons/note.svg" class="svgIcon" /> New note </h5>
+                <p class="card-text text-center">
+                  <textarea v-model="newNote" placeholder="enter a message" class="form-control"></textarea>
+                  <button class="btn btn-success" id="submitNewNote" @click='sendNewNote()'>Save Note</button>
+                  <p>
+              </div>
+            </div>
+
+
+            <!--Live Feed Data -->
+            <div v-for='(message, index) in activityFeed'>
+              <div :class="'card shadow ' + message.type" style="margin: 2rem 0" :key="'activity' + index">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <img :src="'img/dark-icons/' + message.type + '.svg'" class="svgIcon" />
+                    {{ message.user }} </h5>
+                  <!-- <h6 class="card-subtitle mb-2 text-muted">From: {{ message.user }}</h6> -->
+                  <p class="card-text">{{ message.message }}</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="col-md-2">
+            <!-- <h2 style="color: white;">Contacts</h2> -->
+            <div v-for="(user, index) in connectedUsers" style="color: white;">
+              <button class="btn btn-dark contactBtn"><b>{{user.username}}</b></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <script>
+    var socket = io();
+    let vue = new Vue({
+      el: '#app',
+      data: {
+        activityFeed: [],
+        username: '',
+        usernameSubmitted: false,
+        ready: false,
+        connections: 0,
+        socketId: null,
+        connectedUsers: [],
+        sendTo: null,
+        showNewGroupMessage: false,
+        newGroupMessage: '',
+        showNewNote: false,
+        newNote: '',
+        showNewDirectMessage: false,
+        newDirectMessage: ''
+      },
+      created() {
+        socket.on('userConnected', (data) => {
+          this.socketId = data
+        });
+        socket.on('updateActivityFeed', (data) => {
+          this.activityFeed.unshift({ ...data });
+        });
+        socket.on('clearActivityFeed', (data) => {
+          this.activityFeed = [];
+        });
+        socket.on('contactsList', (data) => {
+          this.connectedUsers = data
+        });
+      },
+      watch: {
+
+      },
+      computed: {
+        connectedUsersKeys() {
+          return OBject.keys(this.connectedUsers)
+        }
+      },
+      methods: {
+        toggleBoolProp(prop) {
+          this[prop] = !this[prop]
+        },
+        submitUsername() {
+          this.usernameSubmitted = true
+          socket.emit('attachUser', this.username)
+        },
+        sendGroupMessage() {
+          this.activity('groupMsg', this.newGroupMessage, this.username, false, true, 'all')
+          this.newGroupMessage = ''
+          this.showNewGroupMessage = false
+        },
+        sendDirectMessage() {
+          this.activity('directMsg', this.newDirectMessage, this.username, false, true, this.sendTo)
+          this.sendTo = null
+          this.newDirectMessage = ''
+          this.showNewDirectMessage = false
+        },
+        sendNewNote() {
+          this.activity('note', this.newNote, this.username, true, true, 'all')
+          this.newNote = ''
+          this.showNewNote = false
+        },
+        sendAppointment() {
+          this.activity('appointment', 'This is an appointment that I have made', this.username, false, true, 'all')
+        },
+        clearActivityFeed() {
+          socket.emit('clearActivityFeed', {})
+        },
+        activity(type, message, user, private, showNewTag, sendTo) {
+          if (private === false) {
+            this.activityFeed.unshift({
+              type,
+              message,
+              user,
+              private,
+              showNewTag,
+              sendTo
+            });
+          }
+
+          socket.emit('handleActivity', {
+            type,
+            message,
+            user,
+            private,
+            showNewTag,
+            sendTo
+          });
+        }
+      },
+    });
+  </script>
+</body>
+
+</html>
